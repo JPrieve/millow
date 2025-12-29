@@ -112,9 +112,9 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
     }
 
     useEffect(() => {
-        fetchDetails()
-        fetchOwner()
-    }, [hasSold])
+        fetchDetails();
+        fetchOwner();
+    }, [hasSold]);
 
     return (
         <div className="home">
