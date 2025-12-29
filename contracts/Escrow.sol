@@ -30,12 +30,12 @@ contract Escrow {
         _;
     }
 
-    mapping(uint256 => bool) public isListed;
-    mapping(uint256 => uint256) public purchasePrice;
-    mapping(uint256 => uint256) public escrowAmount;
-    mapping(uint256 => address) public buyer;
-    mapping(uint256 => bool) public inspectionPassed;
-    mapping(uint256 => mapping(address => bool)) public approval;
+    mapping(uint256 => bool) public isListed;                           // nftID => true/false
+    mapping(uint256 => uint256) public purchasePrice;                   // nftID => price 
+    mapping(uint256 => uint256) public escrowAmount;                    // nftID => escrow amount  
+    mapping(uint256 => address) public buyer;                           // nftID => buyer address  
+    mapping(uint256 => bool) public inspectionPassed;                   // nftID => true/false    
+    mapping(uint256 => mapping(address => bool)) public approval;       // nftID => (address => true/false)  
 
     constructor(
         address _nftAddress,
@@ -49,12 +49,14 @@ contract Escrow {
         lender = _lender;
     }
 
+    // List property - house for sale
     function list(
         uint256 _nftID,
         address _buyer,
         uint256 _purchasePrice,
         uint256 _escrowAmount
     ) public payable onlySeller {
+
         // Transfer NFT from seller to this contract
         IERC721(nftAddress).transferFrom(msg.sender, address(this), _nftID);
 
@@ -64,12 +66,12 @@ contract Escrow {
         buyer[_nftID] = _buyer;
     }
 
-    // Put Under Contract (only buyer - payable escrow)
+    // Buyer deposits escrow amount
     function depositEarnest(uint256 _nftID) public payable onlyBuyer(_nftID) {
         require(msg.value >= escrowAmount[_nftID]);
     }
 
-    // Update Inspection Status (only inspector)
+    // update inspection status
     function updateInspectionStatus(uint256 _nftID, bool _passed)
         public
         onlyInspector
@@ -77,11 +79,11 @@ contract Escrow {
         inspectionPassed[_nftID] = _passed;
     }
 
-    // Approve Sale
+    // Approve the sale
     function approveSale(uint256 _nftID) public {
         approval[_nftID][msg.sender] = true;
     }
-
+    
     // Finalize Sale
     // -> Require inspection status (add more items here, like appraisal)
     // -> Require sale to be authorized
@@ -104,20 +106,11 @@ contract Escrow {
 
         IERC721(nftAddress).transferFrom(address(this), buyer[_nftID], _nftID);
     }
-
-    // Cancel Sale (handle earnest deposit)
-    // -> if inspection status is not approved, then refund, otherwise send to seller
-    function cancelSale(uint256 _nftID) public {
-        if (inspectionPassed[_nftID] == false) {
-            payable(buyer[_nftID]).transfer(address(this).balance);
-        } else {
-            payable(seller).transfer(address(this).balance);
-        }
-    }
-
+    
     receive() external payable {}
 
     function getBalance() public view returns (uint256) {
         return address(this).balance;
     }
+
 }

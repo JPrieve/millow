@@ -4,66 +4,77 @@ import { useEffect, useState } from 'react';
 import close from '../assets/close.svg';
 
 const Home = ({ home, provider, account, escrow, togglePop }) => {
-    const [hasBought, setHasBought] = useState(false)
-    const [hasLended, setHasLended] = useState(false)
-    const [hasInspected, setHasInspected] = useState(false)
-    const [hasSold, setHasSold] = useState(false)
 
-    const [buyer, setBuyer] = useState(null)
-    const [lender, setLender] = useState(null)
-    const [inspector, setInspector] = useState(null)
-    const [seller, setSeller] = useState(null)
+    const [hasBought, setHasBought] = useState(false);
+    const [hasLended, setHasLended] = useState(false);
+    const [hasInspected, setHasInspected] = useState(false);
+    const [hasSold, setHasSold] = useState(false);
 
-    const [owner, setOwner] = useState(null)
+    const [buyer, setBuyer] = useState(null);
+    const [lender, setLender] = useState(null);
+    const [inspector, setInspector] = useState(null);
+    const [seller, setSeller] = useState(null);
+
+    const [owner, setOwner] = useState(null);
 
     const fetchDetails = async () => {
+
         // -- Buyer
+        const buyer = await escrow.buyer(home.id);
+        setBuyer(buyer);
 
-        const buyer = await escrow.buyer(home.id)
-        setBuyer(buyer)
-
-        const hasBought = await escrow.approval(home.id, buyer)
-        setHasBought(hasBought)
+        const hasBought = await escrow.approval(home.id, buyer);
+        setHasBought(hasBought);
 
         // -- Seller
+        const seller = await escrow.seller();
+        setSeller(seller);
 
-        const seller = await escrow.seller()
-        setSeller(seller)
-
-        const hasSold = await escrow.approval(home.id, seller)
-        setHasSold(hasSold)
+        const hasSold = await escrow.approval(home.id, seller);
+        setHasSold(hasSold);
 
         // -- Lender
+        const lender = await escrow.lender();
+        setLender(lender);
 
-        const lender = await escrow.lender()
-        setLender(lender)
-
-        const hasLended = await escrow.approval(home.id, lender)
-        setHasLended(hasLended)
+        const hasLended = await escrow.approval(home.id, lender);
+        setHasLended(hasLended);
 
         // -- Inspector
+        const inspector = await escrow.inspector();
+        setInspector(inspector);
 
-        const inspector = await escrow.inspector()
-        setInspector(inspector)
-
-        const hasInspected = await escrow.inspectionPassed(home.id)
-        setHasInspected(hasInspected)
+        const hasInspected = await escrow.inspectionPassed(home.id);
+        setHasInspected(hasInspected);
     }
 
+    // Fetch owner if not listed
     const fetchOwner = async () => {
         if (await escrow.isListed(home.id)) return
 
-        const owner = await escrow.buyer(home.id)
-        setOwner(owner)
+        const owner = await escrow.buyer(home.id);
+        setOwner(owner);
     }
 
+    // Handlers for actions
     const buyHandler = async () => {
-        const escrowAmount = await escrow.escrowAmount(home.id)
-        const signer = await provider.getSigner()
+        // Fetch escrow amount
+        const escrowAmount = await escrow.escrowAmount(home.id);
+        const signer = await provider.getSigner();
 
         // Buyer deposit earnest
-        let transaction = await escrow.connect(signer).depositEarnest(home.id, { value: escrowAmount })
-        await transaction.wait()
+        let transaction = await escrow.connect(signer).depositEarnest(home.id, { value: escrowAmount });
+        await transaction.wait();
+
+        // Buyer approves...
+        transaction = await escrow.connect(signer).approveSale(home.id);
+        await transaction.wait();
+
+        setHasBought(true);
+    }
+
+    const inspectHandler = async () => {
+        const signer = await provider.getSigner()
 
         // Buyer approves...
         transaction = await escrow.connect(signer).approveSale(home.id)
@@ -77,7 +88,13 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
 
         // Inspector updates status
         const transaction = await escrow.connect(signer).updateInspectionStatus(home.id, true)
-        await transaction.wait()
+        await transaction.wait();
+
+        setHasInspected(true);
+    }
+
+    const lendHandler = async () => {
+        const signer = await provider.getSigner();
 
         setHasInspected(true)
     }
@@ -86,34 +103,34 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
         const signer = await provider.getSigner()
 
         // Lender approves...
-        const transaction = await escrow.connect(signer).approveSale(home.id)
-        await transaction.wait()
+        const transaction = await escrow.connect(signer).approveSale(home.id);
+        await transaction.wait();
 
         // Lender sends funds to contract...
-        const lendAmount = (await escrow.purchasePrice(home.id) - await escrow.escrowAmount(home.id))
-        await signer.sendTransaction({ to: escrow.address, value: lendAmount.toString(), gasLimit: 60000 })
+        const lendAmount = (await escrow.purchasePrice(home.id) - await escrow.escrowAmount(home.id));
+        await signer.sendTransaction({ to: escrow.address, value: lendAmount.toString(), gasLimit: 60000 });
 
-        setHasLended(true)
+        setHasLended(true);
     }
 
     const sellHandler = async () => {
-        const signer = await provider.getSigner()
+        const signer = await provider.getSigner();
 
         // Seller approves...
-        let transaction = await escrow.connect(signer).approveSale(home.id)
-        await transaction.wait()
+        let transaction = await escrow.connect(signer).approveSale(home.id);
+        await transaction.wait();
 
         // Seller finalize...
-        transaction = await escrow.connect(signer).finalizeSale(home.id)
-        await transaction.wait()
+        transaction = await escrow.connect(signer).finalizeSale(home.id);
+        await transaction.wait();
 
-        setHasSold(true)
+        setHasSold(true);
     }
 
     useEffect(() => {
-        fetchDetails()
-        fetchOwner()
-    }, [hasSold])
+        fetchDetails();
+        fetchOwner();
+    }, [hasSold]);
 
     return (
         <div className="home">
@@ -161,26 +178,20 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
                             </button>
                         </div>
                     )}
-
                     <hr />
 
                     <h2>Overview</h2>
-
-                    <p>
-                        {home.description}
-                    </p>
-
+                    <p>{home.description}</p>
                     <hr />
 
                     <h2>Facts and features</h2>
-
                     <ul>
                         {home.attributes.map((attribute, index) => (
                             <li key={index}><strong>{attribute.trait_type}</strong> : {attribute.value}</li>
                         ))}
                     </ul>
-                </div>
 
+                </div>
 
                 <button onClick={togglePop} className="home__close">
                     <img src={close} alt="Close" />

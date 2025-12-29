@@ -1,13 +1,16 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
+// Helper function to convert tokens
+// This function converts a number to the smallest unit of ether (wei)
 const tokens = (n) => {
-    return ethers.utils.parseUnits(n.toString(), 'ether')
+    return ethers.utils.parseUnits(n.toString(), 'ether');
 }
 
 describe('Escrow', () => {
-    let buyer, seller, inspector, lender
-    let realEstate, escrow
+
+    let buyer, seller, inspector, lender;
+    let realEstate, escrow;
 
     beforeEach(async () => {
         // Setup accounts
@@ -37,31 +40,33 @@ describe('Escrow', () => {
         // List Property
         transaction = await escrow.connect(seller).list(1, buyer.address, tokens(10), tokens(5))
         await transaction.wait()
+
     })
 
     describe('Deployment', () => {
         it('Returns NFT address', async () => {
-            const result = await escrow.nftAddress()
-            expect(result).to.be.equal(realEstate.address)
+            const result = await escrow.nftAddress();
+            expect(result).to.be.equal(realEstate.address);
         })
 
         it('Returns seller', async () => {
-            const result = await escrow.seller()
-            expect(result).to.be.equal(seller.address)
+            const result = await escrow.seller();
+            expect(result).to.be.equal(seller.address);
         })
 
         it('Returns inspector', async () => {
-            const result = await escrow.inspector()
-            expect(result).to.be.equal(inspector.address)
+            const result = await escrow.inspector();
+            expect(result).to.be.equal(inspector.address);
         })
 
         it('Returns lender', async () => {
-            const result = await escrow.lender()
-            expect(result).to.be.equal(lender.address)
+            const result = await escrow.lender();
+            expect(result).to.be.equal(lender.address);
         })
     })
 
     describe('Listing', () => {
+
         it('Updates as listed', async () => {
             const result = await escrow.isListed(1)
             expect(result).to.be.equal(true)
@@ -112,6 +117,7 @@ describe('Escrow', () => {
     })
 
     describe('Approval', () => {
+
         beforeEach(async () => {
             let transaction = await escrow.connect(buyer).approveSale(1)
             await transaction.wait()
@@ -128,6 +134,7 @@ describe('Escrow', () => {
             expect(await escrow.approval(1, seller.address)).to.be.equal(true)
             expect(await escrow.approval(1, lender.address)).to.be.equal(true)
         })
+        
     })
 
     describe('Sale', () => {
@@ -161,4 +168,5 @@ describe('Escrow', () => {
             expect(await escrow.getBalance()).to.be.equal(0)
         })
     })
+    
 })
