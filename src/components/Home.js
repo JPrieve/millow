@@ -76,6 +76,16 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
     const inspectHandler = async () => {
         const signer = await provider.getSigner()
 
+        // Buyer approves...
+        transaction = await escrow.connect(signer).approveSale(home.id)
+        await transaction.wait()
+
+        setHasBought(true)
+    }
+
+    const inspectHandler = async () => {
+        const signer = await provider.getSigner()
+
         // Inspector updates status
         const transaction = await escrow.connect(signer).updateInspectionStatus(home.id, true)
         await transaction.wait();
@@ -85,6 +95,12 @@ const Home = ({ home, provider, account, escrow, togglePop }) => {
 
     const lendHandler = async () => {
         const signer = await provider.getSigner();
+
+        setHasInspected(true)
+    }
+
+    const lendHandler = async () => {
+        const signer = await provider.getSigner()
 
         // Lender approves...
         const transaction = await escrow.connect(signer).approveSale(home.id);
