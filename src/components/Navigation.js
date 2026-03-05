@@ -9,8 +9,34 @@ const Navigation = ({ account, setAccount }) => {
             alert('MetaMask not detected');
             return;
         }
+
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x7A69' }],
+            });
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x7A69',
+                        chainName: 'Hardhat Localhost',
+                        nativeCurrency: {
+                            name: 'ETH',
+                            symbol: 'ETH',
+                            decimals: 18,
+                        },
+                        rpcUrls: ['http://127.0.0.1:8545'],
+                    }],
+                });
+            } else {
+                throw switchError;
+            }
+        }
+
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setAccount(accounts[0]);
+        setAccount(ethers.utils.getAddress(accounts[0]));
     } catch (error) {
         console.error('MetaMask connection error:', error);
         alert('Error connecting to MetaMask');
